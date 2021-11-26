@@ -70,16 +70,9 @@ def start(bot, update):
     return "HANDLE_MENU"
 
 
-def echo(bot, update):
-    """
-    Хэндлер для состояния ECHO.
+def get_back_to_menu(bot, update):
 
-    Бот отвечает пользователю тем же, что пользователь ему написал.
-    Оставляет пользователя в состоянии ECHO.
-    """
-    users_reply = update.message.text
-    update.message.reply_text(users_reply)
-    return "ECHO"
+    return "HANDLE_MENU"
 
 
 def handle_menu(bot, update):
@@ -96,13 +89,18 @@ def handle_menu(bot, update):
    
 {product['description']}
 '''
+    keyboard = [[InlineKeyboardButton('Назад', callback_data='pressed')]]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
     bot.send_photo(
         chat_id=query.message.chat_id,
         photo=get_image_url(image_id),
         caption=text,
+        reply_markup=reply_markup
     )
 
-    return "START"
+    return "HANDLE_DESCRIPTION"
 
 
 def handle_users_reply(bot, update):
@@ -134,8 +132,8 @@ def handle_users_reply(bot, update):
 
     states_functions = {
         'START': start,
-        'ECHO': echo,
         'HANDLE_MENU': handle_menu,
+        'HANDLE_DESCRIPTION': get_back_to_menu
     }
     state_handler = states_functions[user_state]
     # Если вы вдруг не заметите, что python-telegram-bot перехватывает ошибки.

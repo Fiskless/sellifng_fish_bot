@@ -51,12 +51,6 @@ def get_image_url(image_id):
 
 
 def start(bot, update):
-    """
-    Хэндлер для состояния START.
-
-    Бот отвечает пользователю фразой "Привет!" и переводит его в состояние ECHO.
-    Теперь в ответ на его команды будет запускаеться хэндлер echo.
-    """
 
     keyboard = []
     products = get_products()
@@ -71,7 +65,19 @@ def start(bot, update):
 
 
 def get_back_to_menu(bot, update):
+    query = update.callback_query
+    bot.delete_message(chat_id=query.message.chat_id,
+                       message_id=query.message.message_id)
 
+    keyboard = []
+    products = get_products()
+    for product in products:
+        keyboard.append([InlineKeyboardButton(product['name'],
+                                              callback_data=product['id'])])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    query.message.reply_text('Please choose:', reply_markup=reply_markup)
     return "HANDLE_MENU"
 
 
@@ -89,7 +95,7 @@ def handle_menu(bot, update):
    
 {product['description']}
 '''
-    keyboard = [[InlineKeyboardButton('Назад', callback_data='pressed')]]
+    keyboard = [[InlineKeyboardButton('Назад', callback_data='back_to_menu')]]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -136,9 +142,7 @@ def handle_users_reply(bot, update):
         'HANDLE_DESCRIPTION': get_back_to_menu
     }
     state_handler = states_functions[user_state]
-    # Если вы вдруг не заметите, что python-telegram-bot перехватывает ошибки.
-    # Оставляю этот try...except, чтобы код не падал молча.
-    # Этот фрагмент можно переписать.
+
     try:
         next_state = state_handler(bot, update)
         db.set(chat_id, next_state)
@@ -147,9 +151,7 @@ def handle_users_reply(bot, update):
 
 
 def get_database_connection():
-    """
-    Возвращает конекшн с базой данных Redis, либо создаёт новый, если он ещё не создан.
-    """
+
     global _database
     if _database is None:
         database_password = env("REDIS_PASSWORD")

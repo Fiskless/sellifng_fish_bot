@@ -16,6 +16,25 @@ from environs import Env
 _database = None
 
 
+def add_product_to_cart(chat_id, product_id, quantity):
+    headers = {
+        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
+        'Content-Type': 'application/json',
+    }
+
+    payload = {"data": {'id': product_id,
+                        'type': 'cart_item',
+                        'quantity': quantity
+                        }
+               }
+
+    response = requests.post(f'https://api.moltin.com/v2/carts/{chat_id}/items',
+                             headers=headers,
+                             json=payload)
+    response.raise_for_status()
+    return response.json()['data']
+
+
 def get_products():
     headers = {
         'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
@@ -65,20 +84,29 @@ def start(bot, update):
 
 
 def get_back_to_menu(bot, update):
+
     query = update.callback_query
-    bot.delete_message(chat_id=query.message.chat_id,
-                       message_id=query.message.message_id)
 
-    keyboard = []
-    products = get_products()
-    for product in products:
-        keyboard.append([InlineKeyboardButton(product['name'],
-                                              callback_data=product['id'])])
+    if query.data == "back-to-menu":
+        bot.delete_message(chat_id=query.message.chat_id,
+                           message_id=query.message.message_id)
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        keyboard = []
+        products = get_products()
+        for product in products:
+            keyboard.append([InlineKeyboardButton(product['name'],
+                                                  callback_data=product['id'])])
 
-    query.message.reply_text('Please choose:', reply_markup=reply_markup)
-    return "HANDLE_MENU"
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        query.message.reply_text('Please choose:', reply_markup=reply_markup)
+        return "HANDLE_MENU"
+    else:
+        chat_id = query.message.chat_id
+        product_id, product_quantity = query.data.split('/')
+        cart_items = add_product_to_cart(chat_id, product_id, int(product_quantity))
+        print(cart_items)
+        return "HANDLE_DESCRIPTION"
 
 
 def handle_menu(bot, update):
@@ -95,7 +123,11 @@ def handle_menu(bot, update):
    
 {product['description']}
 '''
-    keyboard = [[InlineKeyboardButton('Назад', callback_data='back_to_menu')]]
+    keyboard = [[InlineKeyboardButton("1 кг", callback_data=f'{product["id"]}/1'),
+                 InlineKeyboardButton("3 кг", callback_data=f'{product["id"]}/3'),
+                 InlineKeyboardButton("5 кг", callback_data=f'{product["id"]}/5')],
+
+                [InlineKeyboardButton('Назад', callback_data='back-to-menu')]]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 

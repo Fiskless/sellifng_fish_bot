@@ -1,83 +1,35 @@
-"""
-Работает с этими модулями:
-python-telegram-bot==11.1.0
-redis==3.2.1
-"""
-import os
-import logging
 import redis
-import requests
+
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Filters, Updater
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 from environs import Env
 
+from moltin_api_functions import get_products, add_product_to_cart, \
+    get_product, get_image_url, get_cart, remove_cart_item
+
 _database = None
 
 
-def add_product_to_cart(chat_id, product_id, quantity):
-    headers = {
-        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
-        'Content-Type': 'application/json',
-    }
-
-    payload = {"data": {'id': product_id,
-                        'type': 'cart_item',
-                        'quantity': quantity
-                        }
-               }
-
-    response = requests.post(f'https://api.moltin.com/v2/carts/{chat_id}/items',
-                             headers=headers,
-                             json=payload)
-    response.raise_for_status()
-    return response.json()['data']
-
-
-def get_products():
-    headers = {
-        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
-        'Content-Type': 'application/json',
-    }
-
-    response = requests.get('https://api.moltin.com/v2/products/',
-                            headers=headers)
-    response.raise_for_status()
-    return response.json()['data']
-
-
-def get_product(product_id):
-    headers = {
-        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
-    }
-
-    response = requests.get(f'https://api.moltin.com/v2/products/{product_id}',
-                            headers=headers)
-    response.raise_for_status()
-    return response.json()['data']
-
-
-def get_image_url(image_id):
-    headers = {
-        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
-    }
-
-    response = requests.get(f'https://api.moltin.com/v2/files/{image_id}',
-                            headers=headers)
-    response.raise_for_status()
-    return response.json()['data']['link']['href']
-
-
-def start(bot, update):
-
+def add_buttons():
     keyboard = []
     products = get_products()
     for product in products:
         keyboard.append([InlineKeyboardButton(product['name'],
                                               callback_data=product['id'])])
 
+    keyboard.append([InlineKeyboardButton('Корзина',
+                                          callback_data='cart_items')])
+
     reply_markup = InlineKeyboardMarkup(keyboard)
+
+    return reply_markup
+
+
+def start(bot, update):
+
+    reply_markup = add_buttons()
 
     update.message.reply_text('Please choose:', reply_markup=reply_markup)
     return "HANDLE_MENU"
@@ -91,13 +43,7 @@ def get_back_to_menu(bot, update):
         bot.delete_message(chat_id=query.message.chat_id,
                            message_id=query.message.message_id)
 
-        keyboard = []
-        products = get_products()
-        for product in products:
-            keyboard.append([InlineKeyboardButton(product['name'],
-                                                  callback_data=product['id'])])
-
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        reply_markup = add_buttons()
 
         query.message.reply_text('Please choose:', reply_markup=reply_markup)
         return "HANDLE_MENU"
@@ -105,7 +51,6 @@ def get_back_to_menu(bot, update):
         chat_id = query.message.chat_id
         product_id, product_quantity = query.data.split('/')
         cart_items = add_product_to_cart(chat_id, product_id, int(product_quantity))
-        print(cart_items)
         return "HANDLE_DESCRIPTION"
 
 
@@ -113,31 +58,79 @@ def handle_menu(bot, update):
     query = update.callback_query
     bot.delete_message(chat_id=query.message.chat_id,
                        message_id=query.message.message_id)
-    product = get_product(query.data)
-    image_id = product['relationships']['main_image']['data']['id']
-    text = f'''
-{product['name']}
-
-{product['meta']['display_price']['with_tax']['formatted']} per kg
-100kg on stock     
-   
+    if query.data == 'cart_items':
+        cart = get_cart(query.message.chat_id)
+        cart_info = ''
+        for product in cart['data']:
+            text = f'''{product['name']}
 {product['description']}
+{product['meta']['display_price']['with_tax']['unit']['formatted']} per kg
+{product['quantity']} kg in cart for {product['meta']['display_price']['with_tax']['value']['formatted']}   
+
 '''
-    keyboard = [[InlineKeyboardButton("1 кг", callback_data=f'{product["id"]}/1'),
-                 InlineKeyboardButton("3 кг", callback_data=f'{product["id"]}/3'),
-                 InlineKeyboardButton("5 кг", callback_data=f'{product["id"]}/5')],
+            cart_info = cart_info + text
+        cart_price = cart['meta']['display_price']['with_tax']['formatted']
+        cart_info = cart_info + f'Total: {cart_price}'
 
-                [InlineKeyboardButton('Назад', callback_data='back-to-menu')]]
+        keyboard = []
+        for product in cart['data']:
+            keyboard.append([InlineKeyboardButton(
+                f'Убрать из корзины {product["name"]}',
+                callback_data=product['id'])])
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        keyboard.append([InlineKeyboardButton('Назад',
+                                              callback_data='back-to-menu')])
 
-    bot.send_photo(
-        chat_id=query.message.chat_id,
-        photo=get_image_url(image_id),
-        caption=text,
-        reply_markup=reply_markup
-    )
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
+        bot.send_message(
+            chat_id=query.message.chat_id,
+            text=cart_info,
+            reply_markup=reply_markup
+        )
+        return "HANDLE_CART"
+    else:
+        product = get_product(query.data)
+        image_id = product['relationships']['main_image']['data']['id']
+        text = f'''
+    {product['name']}
+    
+    {product['meta']['display_price']['with_tax']['formatted']} per kg
+    100kg on stock     
+       
+    {product['description']}
+    '''
+        keyboard = [[InlineKeyboardButton("1 кг", callback_data=f'{product["id"]}/1'),
+                     InlineKeyboardButton("3 кг", callback_data=f'{product["id"]}/3'),
+                     InlineKeyboardButton("5 кг", callback_data=f'{product["id"]}/5')],
+
+                    [InlineKeyboardButton('Назад', callback_data='back-to-menu')]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        bot.send_photo(
+            chat_id=query.message.chat_id,
+            photo=get_image_url(image_id),
+            caption=text,
+            reply_markup=reply_markup
+        )
+
+        return "HANDLE_DESCRIPTION"
+
+
+def handle_cart(bot, update):
+    query = update.callback_query
+
+    if query.data == "back-to-menu":
+        bot.delete_message(chat_id=query.message.chat_id,
+                           message_id=query.message.message_id)
+
+        reply_markup = add_buttons()
+
+        query.message.reply_text('Please choose:', reply_markup=reply_markup)
+
+    else:
+        remove_cart_item(query.message.chat_id, query.data)
     return "HANDLE_DESCRIPTION"
 
 
@@ -171,7 +164,8 @@ def handle_users_reply(bot, update):
     states_functions = {
         'START': start,
         'HANDLE_MENU': handle_menu,
-        'HANDLE_DESCRIPTION': get_back_to_menu
+        'HANDLE_DESCRIPTION': get_back_to_menu,
+        'HANDLE_CART': handle_cart,
     }
     state_handler = states_functions[user_state]
 

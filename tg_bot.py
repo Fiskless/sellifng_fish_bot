@@ -1,14 +1,18 @@
+import logging
 import redis
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Filters, Updater
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 from environs import Env
+from logs_handler import CustomLogsHandler
 
 from moltin_api_functions import get_products, add_product_to_cart, \
     get_product, get_image_url, get_cart, remove_cart_item, create_customer
 
 _database = None
+
+logger = logging.getLogger('tg_logger')
 
 
 def add_buttons():
@@ -193,7 +197,10 @@ if __name__ == '__main__':
     env = Env()
     env.read_env()
     token = env("TELEGRAM_TOKEN")
+    chat_id = env("CHAT_ID")
     updater = Updater(token)
+    logger.setLevel(logging.WARNING)
+    logger.addHandler(CustomLogsHandler(chat_id, token))
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))

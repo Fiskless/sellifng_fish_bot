@@ -6,7 +6,7 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 from environs import Env
 
 from moltin_api_functions import get_products, add_product_to_cart, \
-    get_product, get_image_url, get_cart, remove_cart_item
+    get_product, get_image_url, get_cart, remove_cart_item, create_customer
 
 _database = None
 
@@ -140,6 +140,8 @@ def handle_cart(bot, update):
 def waiting_email(bot, update):
     users_reply = update.message.text
     update.message.reply_text(f'Вы прислали мне эту почту: {users_reply}')
+    create_customer(users_reply)
+
     return 'WAITING_EMAIL'
 
 

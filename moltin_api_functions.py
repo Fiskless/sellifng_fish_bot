@@ -80,3 +80,23 @@ def remove_cart_item(cart_id, product_id):
         headers=headers)
     response.raise_for_status()
     return response.json()['data']
+
+
+def create_customer(email):
+    headers = {
+        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
+        'Content-Type': 'application/json',
+    }
+
+    payload = {"data": {'type': 'customer',
+                        'name': 'some name',
+                        "email": email,
+                        "password": "mysecretpassword"
+                        }
+               }
+
+    response = requests.post('https://api.moltin.com/v2/customers',
+                             headers=headers,
+                             json=payload)
+    response.raise_for_status()
+    return response.json()

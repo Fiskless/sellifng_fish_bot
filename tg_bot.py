@@ -1,6 +1,5 @@
 import redis
 
-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Filters, Updater
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
@@ -80,6 +79,8 @@ def handle_menu(bot, update):
 
         keyboard.append([InlineKeyboardButton('Назад',
                                               callback_data='back-to-menu')])
+        keyboard.append([InlineKeyboardButton('Оплатить',
+                                              callback_data='waiting_email')])
 
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -121,6 +122,9 @@ def handle_menu(bot, update):
 def handle_cart(bot, update):
     query = update.callback_query
 
+    if query.data == "waiting_email":
+        query.message.reply_text('Пришлите, пожалуйста, ваш email')
+        return 'WAITING_EMAIL'
     if query.data == "back-to-menu":
         bot.delete_message(chat_id=query.message.chat_id,
                            message_id=query.message.message_id)
@@ -128,25 +132,19 @@ def handle_cart(bot, update):
         reply_markup = add_buttons()
 
         query.message.reply_text('Please choose:', reply_markup=reply_markup)
-
     else:
         remove_cart_item(query.message.chat_id, query.data)
     return "HANDLE_DESCRIPTION"
 
 
+def waiting_email(bot, update):
+    users_reply = update.message.text
+    update.message.reply_text(f'Вы прислали мне эту почту: {users_reply}')
+    return 'WAITING_EMAIL'
+
+
 def handle_users_reply(bot, update):
-    """
-    Функция, которая запускается при любом сообщении от пользователя и решает как его обработать.
-    Эта функция запускается в ответ на эти действия пользователя:
-        * Нажатие на inline-кнопку в боте
-        * Отправка сообщения боту
-        * Отправка команды боту
-    Она получает стейт пользователя из базы данных и запускает соответствующую функцию-обработчик (хэндлер).
-    Функция-обработчик возвращает следующее состояние, которое записывается в базу данных.
-    Если пользователь только начал пользоваться ботом, Telegram форсит его написать "/start",
-    поэтому по этой фразе выставляется стартовое состояние.
-    Если пользователь захочет начать общение с ботом заново, он также может воспользоваться этой командой.
-    """
+
     db = get_database_connection()
     if update.message:
         user_reply = update.message.text
@@ -166,6 +164,7 @@ def handle_users_reply(bot, update):
         'HANDLE_MENU': handle_menu,
         'HANDLE_DESCRIPTION': get_back_to_menu,
         'HANDLE_CART': handle_cart,
+        'WAITING_EMAIL': waiting_email,
     }
     state_handler = states_functions[user_state]
 

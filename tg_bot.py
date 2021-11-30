@@ -98,12 +98,12 @@ def handle_menu(bot, update):
         product = get_product(query.data)
         image_id = product['relationships']['main_image']['data']['id']
         text = f'''
-    {product['name']}
+{product['name']}
     
-    {product['meta']['display_price']['with_tax']['formatted']} per kg
-    100kg on stock     
+{product['meta']['display_price']['with_tax']['formatted']} per kg
+100kg on stock     
        
-    {product['description']}
+{product['description']}
     '''
         keyboard = [[InlineKeyboardButton("1 кг", callback_data=f'{product["id"]}/1'),
                      InlineKeyboardButton("3 кг", callback_data=f'{product["id"]}/3'),

@@ -2,9 +2,9 @@ import requests
 from environs import Env
 
 
-def add_product_to_cart(cart_id, product_id, quantity):
+def add_product_to_cart(cart_id, product_id, quantity, moltin_api_token):
     headers = {
-        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
+        'Authorization': f'Bearer {moltin_api_token}',
         'Content-Type': 'application/json',
     }
 
@@ -21,9 +21,9 @@ def add_product_to_cart(cart_id, product_id, quantity):
     return response.json()['data']
 
 
-def get_cart(chat_id):
+def get_cart(chat_id, moltin_api_token):
     headers = {
-        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
+        'Authorization': f'Bearer {moltin_api_token}',
     }
 
     response = requests.get(
@@ -33,9 +33,9 @@ def get_cart(chat_id):
     return response.json()
 
 
-def get_products():
+def get_products(moltin_api_token):
     headers = {
-        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
+        'Authorization': f'Bearer {moltin_api_token}',
         'Content-Type': 'application/json',
     }
 
@@ -45,9 +45,9 @@ def get_products():
     return response.json()['data']
 
 
-def get_product(product_id):
+def get_product(product_id, moltin_api_token):
     headers = {
-        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
+        'Authorization': f'Bearer {moltin_api_token}',
     }
 
     response = requests.get(f'https://api.moltin.com/v2/products/{product_id}',
@@ -56,9 +56,9 @@ def get_product(product_id):
     return response.json()['data']
 
 
-def get_image_url(image_id):
+def get_image_url(image_id, moltin_api_token):
     headers = {
-        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
+        'Authorization': f'Bearer {moltin_api_token}',
     }
 
     response = requests.get(f'https://api.moltin.com/v2/files/{image_id}',
@@ -67,9 +67,9 @@ def get_image_url(image_id):
     return response.json()['data']['link']['href']
 
 
-def remove_cart_item(cart_id, product_id):
+def remove_cart_item(cart_id, product_id, moltin_api_token):
     headers = {
-        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
+        'Authorization': f'Bearer {moltin_api_token}',
     }
 
     response = requests.delete(
@@ -79,9 +79,9 @@ def remove_cart_item(cart_id, product_id):
     return response.json()['data']
 
 
-def create_customer(email):
+def create_customer(email, moltin_api_token):
     headers = {
-        'Authorization': f'Bearer {env("MOLTIN_API_TOKEN")}',
+        'Authorization': f'Bearer {moltin_api_token}',
         'Content-Type': 'application/json',
     }
 
@@ -99,10 +99,10 @@ def create_customer(email):
     return response.json()
 
 
-def get_access_token():
+def get_access_token(moltin_client_id, moltin_client_secret):
     data = {
-        'client_id': env("MOLTIN_CLIENT_ID"),
-        'client_secret': env("MOLTIN_CLIENT_SECRET"),
+        'client_id': moltin_client_id,
+        'client_secret': moltin_client_secret,
         'grant_type': 'client_credentials'
     }
 
@@ -115,4 +115,4 @@ def get_access_token():
 if __name__ == '__main__':
     env = Env()
     env.read_env()
-    print(get_access_token())
+    print(get_access_token(env("MOLTIN_CLIENT_ID"), env("MOLTIN_CLIENT_SECRET")))

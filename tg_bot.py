@@ -1,4 +1,6 @@
 import logging
+from textwrap import dedent
+
 import redis
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -17,7 +19,7 @@ logger = logging.getLogger('tg_logger')
 
 def add_keyboard():
     keyboard = []
-    products = get_products()
+    products = get_products(moltin_api_token)
     for product in products:
         keyboard.append([InlineKeyboardButton(product['name'],
                                               callback_data=product['id'])])
@@ -53,7 +55,10 @@ def back_to_menu(bot, update):
     else:
         chat_id = query.message.chat_id
         product_id, product_quantity = query.data.split('/')
-        cart_items = add_product_to_cart(chat_id, product_id, int(product_quantity))
+        cart_items = add_product_to_cart(chat_id,
+                                         product_id,
+                                         int(product_quantity),
+                                         moltin_api_token)
         return "HANDLE_DESCRIPTION"
 
 
@@ -62,15 +67,15 @@ def handle_menu(bot, update):
     bot.delete_message(chat_id=query.message.chat_id,
                        message_id=query.message.message_id)
     if query.data == 'cart_items':
-        cart = get_cart(query.message.chat_id)
+        cart = get_cart(query.message.chat_id, moltin_api_token)
         cart_info = ''
         for product in cart['data']:
-            text = f'''{product['name']}
-{product['description']}
-{product['meta']['display_price']['with_tax']['unit']['formatted']} per kg
-{product['quantity']} kg in cart for {product['meta']['display_price']['with_tax']['value']['formatted']}   
-
-'''
+            text = f'''
+            {product['name']}
+            {product['description']}
+            {product['meta']['display_price']['with_tax']['unit']['formatted']} per kg
+            {product['quantity']} kg in cart for {product['meta']['display_price']['with_tax']['value']['formatted']} \n
+            '''
             cart_info = cart_info + text
         cart_price = cart['meta']['display_price']['with_tax']['formatted']
         cart_info = cart_info + f'Total: {cart_price}'
@@ -90,21 +95,19 @@ def handle_menu(bot, update):
 
         bot.send_message(
             chat_id=query.message.chat_id,
-            text=cart_info,
+            text=dedent(cart_info),
             reply_markup=reply_markup
         )
         return "HANDLE_CART"
     else:
-        product = get_product(query.data)
+        product = get_product(query.data, moltin_api_token)
         image_id = product['relationships']['main_image']['data']['id']
-        text = f'''
-{product['name']}
-    
-{product['meta']['display_price']['with_tax']['formatted']} per kg
-100kg on stock     
-       
-{product['description']}
-    '''
+        text = f'''\
+        {product['name']} \n            
+        {product['meta']['display_price']['with_tax']['formatted']} per kg
+        100kg on stock \n               
+        {product['description']}
+        '''
         keyboard = [[InlineKeyboardButton("1 кг", callback_data=f'{product["id"]}/1'),
                      InlineKeyboardButton("3 кг", callback_data=f'{product["id"]}/3'),
                      InlineKeyboardButton("5 кг", callback_data=f'{product["id"]}/5')],
@@ -115,8 +118,8 @@ def handle_menu(bot, update):
 
         bot.send_photo(
             chat_id=query.message.chat_id,
-            photo=get_image_url(image_id),
-            caption=text,
+            photo=get_image_url(image_id, moltin_api_token),
+            caption=dedent(text),
             reply_markup=reply_markup
         )
 
@@ -137,21 +140,23 @@ def handle_cart(bot, update):
 
         query.message.reply_text('Please choose:', reply_markup=reply_markup)
     else:
-        remove_cart_item(query.message.chat_id, query.data)
+        remove_cart_item(query.message.chat_id, query.data, moltin_api_token)
     return "HANDLE_DESCRIPTION"
 
 
 def waiting_email(bot, update):
     users_reply = update.message.text
     update.message.reply_text(f'Вы прислали мне эту почту: {users_reply}')
-    create_customer(users_reply)
+    create_customer(users_reply, moltin_api_token)
 
     return 'WAITING_EMAIL'
 
 
 def handle_users_reply(bot, update):
 
-    db = get_database_connection()
+    db = get_database_connection(database_password,
+                                 database_host,
+                                 database_port)
     if update.message:
         user_reply = update.message.text
         chat_id = update.message.chat_id
@@ -181,13 +186,10 @@ def handle_users_reply(bot, update):
         print(err)
 
 
-def get_database_connection():
+def get_database_connection(database_password, database_host, database_port):
 
     global _database
     if _database is None:
-        database_password = env("REDIS_PASSWORD")
-        database_host = env("REDIS_HOST")
-        database_port = env("REDIS_PORT")
         _database = redis.Redis(host=database_host, port=database_port,
                                 password=database_password)
     return _database
@@ -198,6 +200,10 @@ if __name__ == '__main__':
     env.read_env()
     token = env("TELEGRAM_TOKEN")
     chat_id = env("CHAT_ID")
+    moltin_api_token = env("MOLTIN_API_TOKEN")
+    database_password = env("REDIS_PASSWORD")
+    database_host = env("REDIS_HOST")
+    database_port = env("REDIS_PORT")
     updater = Updater(token)
     logger.setLevel(logging.WARNING)
     logger.addHandler(CustomLogsHandler(chat_id, token))

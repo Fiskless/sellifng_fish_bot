@@ -15,7 +15,7 @@ _database = None
 logger = logging.getLogger('tg_logger')
 
 
-def add_buttons():
+def add_keyboard():
     keyboard = []
     products = get_products()
     for product in products:
@@ -32,13 +32,13 @@ def add_buttons():
 
 def start(bot, update):
 
-    reply_markup = add_buttons()
+    reply_markup = add_keyboard()
 
     update.message.reply_text('Please choose:', reply_markup=reply_markup)
     return "HANDLE_MENU"
 
 
-def get_back_to_menu(bot, update):
+def back_to_menu(bot, update):
 
     query = update.callback_query
 
@@ -46,7 +46,7 @@ def get_back_to_menu(bot, update):
         bot.delete_message(chat_id=query.message.chat_id,
                            message_id=query.message.message_id)
 
-        reply_markup = add_buttons()
+        reply_markup = add_keyboard()
 
         query.message.reply_text('Please choose:', reply_markup=reply_markup)
         return "HANDLE_MENU"
@@ -133,7 +133,7 @@ def handle_cart(bot, update):
         bot.delete_message(chat_id=query.message.chat_id,
                            message_id=query.message.message_id)
 
-        reply_markup = add_buttons()
+        reply_markup = add_keyboard()
 
         query.message.reply_text('Please choose:', reply_markup=reply_markup)
     else:
@@ -168,7 +168,7 @@ def handle_users_reply(bot, update):
     states_functions = {
         'START': start,
         'HANDLE_MENU': handle_menu,
-        'HANDLE_DESCRIPTION': get_back_to_menu,
+        'HANDLE_DESCRIPTION': back_to_menu,
         'HANDLE_CART': handle_cart,
         'WAITING_EMAIL': waiting_email,
     }

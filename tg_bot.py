@@ -45,12 +45,14 @@ def back_to_menu(bot, update):
     query = update.callback_query
 
     if query.data == "back-to-menu":
-        bot.delete_message(chat_id=query.message.chat_id,
-                           message_id=query.message.message_id)
 
         reply_markup = add_keyboard()
 
         query.message.reply_text('Please choose:', reply_markup=reply_markup)
+
+        bot.delete_message(chat_id=query.message.chat_id,
+                           message_id=query.message.message_id)
+
         return "HANDLE_MENU"
     else:
         chat_id = query.message.chat_id
@@ -64,8 +66,7 @@ def back_to_menu(bot, update):
 
 def handle_menu(bot, update):
     query = update.callback_query
-    bot.delete_message(chat_id=query.message.chat_id,
-                       message_id=query.message.message_id)
+
     if query.data == 'cart_items':
         cart = get_cart(query.message.chat_id, moltin_api_token)
         cart_info = ''
@@ -98,6 +99,9 @@ def handle_menu(bot, update):
             text=dedent(cart_info),
             reply_markup=reply_markup
         )
+
+        bot.delete_message(chat_id=query.message.chat_id,
+                           message_id=query.message.message_id)
         return "HANDLE_CART"
     else:
         product = get_product(query.data, moltin_api_token)
@@ -122,6 +126,8 @@ def handle_menu(bot, update):
             caption=dedent(text),
             reply_markup=reply_markup
         )
+        bot.delete_message(chat_id=query.message.chat_id,
+                           message_id=query.message.message_id)
 
         return "HANDLE_DESCRIPTION"
 
@@ -133,12 +139,14 @@ def handle_cart(bot, update):
         query.message.reply_text('Пришлите, пожалуйста, ваш email')
         return 'WAITING_EMAIL'
     if query.data == "back-to-menu":
-        bot.delete_message(chat_id=query.message.chat_id,
-                           message_id=query.message.message_id)
 
         reply_markup = add_keyboard()
 
         query.message.reply_text('Please choose:', reply_markup=reply_markup)
+
+        bot.delete_message(chat_id=query.message.chat_id,
+                           message_id=query.message.message_id)
+
     else:
         remove_cart_item(query.message.chat_id, query.data, moltin_api_token)
     return "HANDLE_DESCRIPTION"

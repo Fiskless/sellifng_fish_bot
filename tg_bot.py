@@ -146,10 +146,10 @@ def handle_cart(bot, update):
 
         bot.delete_message(chat_id=query.message.chat_id,
                            message_id=query.message.message_id)
-
+        return "HANDLE_MENU"
     else:
         remove_cart_item(query.message.chat_id, query.data, moltin_api_token)
-    return "HANDLE_DESCRIPTION"
+        return "HANDLE_DESCRIPTION"
 
 
 def waiting_email(bot, update):

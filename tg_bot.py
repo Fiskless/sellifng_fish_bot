@@ -10,7 +10,8 @@ from environs import Env
 from logs_handler import CustomLogsHandler
 
 from moltin_api import get_products, add_product_to_cart, \
-    get_product, get_image_url, get_cart, remove_cart_item, create_customer
+    get_product, get_image_url, get_cart, remove_cart_item, create_customer, \
+    get_access_token
 
 _database = None
 
@@ -208,7 +209,8 @@ if __name__ == '__main__':
     env.read_env()
     token = env("TELEGRAM_TOKEN")
     chat_id = env("CHAT_ID")
-    moltin_api_token = env("MOLTIN_API_TOKEN")
+    moltin_api_token = get_access_token(env("MOLTIN_CLIENT_ID"),
+                                        env("MOLTIN_CLIENT_SECRET"))
     database_password = env("REDIS_PASSWORD")
     database_host = env("REDIS_HOST")
     database_port = env("REDIS_PORT")

@@ -1,5 +1,4 @@
 import requests
-from environs import Env
 
 
 def add_product_to_cart(cart_id, product_id, quantity, moltin_api_token):
@@ -110,9 +109,3 @@ def get_access_token(moltin_client_id, moltin_client_secret):
                              data=data)
     response.raise_for_status()
     return response.json()['access_token']
-
-
-if __name__ == '__main__':
-    env = Env()
-    env.read_env()
-    print(get_access_token(env("MOLTIN_CLIENT_ID"), env("MOLTIN_CLIENT_SECRET")))

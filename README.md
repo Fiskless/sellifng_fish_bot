@@ -30,12 +30,6 @@
 - `REDIS_PORT` - порт вашей базы даннах
 - `REDIS_PASSWORD` - пароль для подключения к базе данных
 - `CHAT_ID` - для его получения необходимо написать в Telegram специальному боту: @userinfobot
-- `MOLTIN_API_TOKEN` - для получения данного токена необходимо выполнить запрос из [документации](https://documentation.elasticpath.com/commerce-cloud/docs/api/basics/authentication/client-credential-token.html). Чтобы 
-получить токен в данном проекте, достаточно запустить скрипт, который выведет вам ваш токен в консоль:
-    ```sh
-    python3 get_access_token.py
-    ```
-Следует обратить внимание, что данный токен будет действовать только 1 час, после чего необходимо повторно получить токен
 - `MOLTIN_CLIENT_ID` - после того, как вы создали свой магазин в [CMS](https://www.elasticpath.com/) данный id будет у вас на главной странице в графе `Client ID`.
 - `MOLTIN_CLIENT_SECRET` - после того, как вы создали свой магазин в [CMS](https://www.elasticpath.com/) данный id будет у вас на главной странице в графе `Client secret`.
 

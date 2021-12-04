@@ -14,7 +14,6 @@ from moltin_api import get_products, add_product_to_cart, \
     get_access_token
 
 _database = None
-moltin_api_token = None
 
 logger = logging.getLogger('tg_logger')
 
@@ -54,6 +53,15 @@ def start(bot, update):
 
 
 def back_to_menu(bot, update):
+    db = get_database_connection(database_password,
+                                 database_host,
+                                 database_port)
+
+    moltin_api_token = get_or_create_moltin_api_token(
+        env("MOLTIN_CLIENT_ID"),
+        env("MOLTIN_CLIENT_SECRET"),
+        db
+    )
 
     query = update.callback_query
 
@@ -78,6 +86,16 @@ def back_to_menu(bot, update):
 
 
 def handle_menu(bot, update):
+    db = get_database_connection(database_password,
+                                 database_host,
+                                 database_port)
+
+    moltin_api_token = get_or_create_moltin_api_token(
+        env("MOLTIN_CLIENT_ID"),
+        env("MOLTIN_CLIENT_SECRET"),
+        db
+    )
+
     query = update.callback_query
 
     if query.data == 'cart_items':
@@ -146,6 +164,16 @@ def handle_menu(bot, update):
 
 
 def handle_cart(bot, update):
+    db = get_database_connection(database_password,
+                                 database_host,
+                                 database_port)
+
+    moltin_api_token = get_or_create_moltin_api_token(
+        env("MOLTIN_CLIENT_ID"),
+        env("MOLTIN_CLIENT_SECRET"),
+        db
+    )
+
     query = update.callback_query
 
     if query.data == "waiting_email":
@@ -166,6 +194,15 @@ def handle_cart(bot, update):
 
 
 def waiting_email(bot, update):
+    db = get_database_connection(database_password,
+                                 database_host,
+                                 database_port)
+
+    moltin_api_token = get_or_create_moltin_api_token(
+        env("MOLTIN_CLIENT_ID"),
+        env("MOLTIN_CLIENT_SECRET"),
+        db
+    )
     users_reply = update.message.text
     update.message.reply_text(f'Вы прислали мне эту почту: {users_reply}')
     create_customer(users_reply, moltin_api_token)
@@ -178,12 +215,6 @@ def handle_users_reply(bot, update):
     db = get_database_connection(database_password,
                                  database_host,
                                  database_port)
-
-    moltin_api_token = get_or_create_moltin_api_token(
-        env("MOLTIN_CLIENT_ID"),
-        env("MOLTIN_CLIENT_SECRET"),
-        db
-    )
 
     if update.message:
         user_reply = update.message.text
@@ -227,12 +258,12 @@ def get_or_create_moltin_api_token(moltin_client_id,
                                    moltin_client_secret,
                                    database):
 
-    global moltin_api_token
-    moltin_api_token = database.get('moltin_api_token').decode("utf-8") \
-        if database.get('moltin_api_token') \
-        else get_access_token(moltin_client_id,
-                              moltin_client_secret,
-                              database)
+    if database.get('moltin_api_token'):
+        moltin_api_token = database.get('moltin_api_token').decode("utf-8")
+    else:
+        moltin_api_token, expire_time = get_access_token(moltin_client_id,
+                                                         moltin_client_secret)
+        database.set('moltin_api_token', moltin_api_token, ex=expire_time)
     return moltin_api_token
 
 

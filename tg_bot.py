@@ -14,7 +14,7 @@ from moltin_api import get_products, add_product_to_cart, \
     get_access_token
 
 _database = None
-
+moltin_api_token = None
 
 logger = logging.getLogger('tg_logger')
 

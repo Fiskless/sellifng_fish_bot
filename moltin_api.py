@@ -98,7 +98,10 @@ def create_customer(email, moltin_api_token):
     return response.json()
 
 
-def get_access_token(moltin_client_id, moltin_client_secret):
+def get_access_token(moltin_client_id,
+                     moltin_client_secret,
+                     database):
+
     data = {
         'client_id': moltin_client_id,
         'client_secret': moltin_client_secret,
@@ -108,4 +111,9 @@ def get_access_token(moltin_client_id, moltin_client_secret):
     response = requests.post('https://api.moltin.com/oauth/access_token',
                              data=data)
     response.raise_for_status()
-    return response.json()['access_token']
+    moltin_api_token = response.json()['access_token']
+
+    database.set('moltin_api_token', moltin_api_token)
+    database.expire('moltin_api_token', 3600)
+
+    return moltin_api_token

@@ -15,11 +15,23 @@ from moltin_api import get_products, add_product_to_cart, \
 
 _database = None
 
+
 logger = logging.getLogger('tg_logger')
 
 
 def add_keyboard():
     keyboard = []
+
+    db = get_database_connection(database_password,
+                                 database_host,
+                                 database_port)
+
+    moltin_api_token = get_or_create_moltin_api_token(
+        env("MOLTIN_CLIENT_ID"),
+        env("MOLTIN_CLIENT_SECRET"),
+        db
+    )
+
     products = get_products(moltin_api_token)
     for product in products:
         keyboard.append([InlineKeyboardButton(product['name'],
@@ -166,6 +178,13 @@ def handle_users_reply(bot, update):
     db = get_database_connection(database_password,
                                  database_host,
                                  database_port)
+
+    moltin_api_token = get_or_create_moltin_api_token(
+        env("MOLTIN_CLIENT_ID"),
+        env("MOLTIN_CLIENT_SECRET"),
+        db
+    )
+
     if update.message:
         user_reply = update.message.text
         chat_id = update.message.chat_id
@@ -204,13 +223,25 @@ def get_database_connection(database_password, database_host, database_port):
     return _database
 
 
+def get_or_create_moltin_api_token(moltin_client_id,
+                                   moltin_client_secret,
+                                   database):
+
+    global moltin_api_token
+    moltin_api_token = database.get('moltin_api_token').decode("utf-8") \
+        if database.get('moltin_api_token') \
+        else get_access_token(moltin_client_id,
+                              moltin_client_secret,
+                              database)
+    return moltin_api_token
+
+
 if __name__ == '__main__':
+
     env = Env()
     env.read_env()
     token = env("TELEGRAM_TOKEN")
     chat_id = env("CHAT_ID")
-    moltin_api_token = get_access_token(env("MOLTIN_CLIENT_ID"),
-                                        env("MOLTIN_CLIENT_SECRET"))
     database_password = env("REDIS_PASSWORD")
     database_host = env("REDIS_HOST")
     database_port = env("REDIS_PORT")
